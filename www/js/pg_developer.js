@@ -18,19 +18,28 @@ var developer = {
         targetElem.innerHTML = app.interpolate(html, map);
 
         // first initialize selectors from network tables.
-        $(".selector").each(function() {
-            var key = $(this).attr("id");
-            var ntkey = "/SmartDashboard/" + key;
-            var val = NetworkTables.getValue(ntkey + "/selected");
-            $(this).val(val);
+        var html = "<table>";
+        NetworkTables.getKeys().forEach(function(key)
+        {
+            if (key.startsWith("/SmartDashboard/Loggers/"))
+            {
+                var logger = key.replace("/SmartDashboard/Loggers/", "").replace(/</g, "&lt;");
+                html = html + `<tr><td>${logger}:</td><td><select data-log="${logger}">${map.loglevels}</select></span></td></tr>`;
+            }
         });
+        html = html + "</table>";
+        $(".logs").html(html);
 
-        // now update network tables on changes
-        $(".selector").change(function() {
-            var value = $(this).val();
-            var key = $(this).attr("id");
-            var ntkey = "/SmartDashboard/" + key ;
-            NetworkTables.putValue(ntkey + "/selected", value);
+        $("select[data-log]").each(function() {
+            var select = $(this);
+            var log = select.attr("data-log");
+            var setting = NetworkTables.getValue("/SmartDashboard/Loggers/" + log);
+            $(`option[data-text="${setting}"]`, select).attr("selected", true);
+
+            // Function to run when a new <option> is picked
+            select.change(function() {
+                NetworkTables.putValue(`/SmartDashboard/Loggers/${log}`, $(this).find("option:selected").text());
+            });
         });
 
         // build string.
